@@ -1,4 +1,9 @@
 import asyncio
+import signal
+
+
+# Ignore SIGTSTP
+signal.signal(signal.SIGTSTP, signal.SIG_IGN)
 
 ev = asyncio.Event()
 
@@ -22,11 +27,11 @@ async def error_from_subprocess(process):
     while True:
         line = await process.stderr.readline()
         if line:
-            # if line.decode().strip() == "end":
+            if line.decode().strip() == "end":
             #     # print("end of output")
+                ev.set()
             # else:
             # print("x> ", line.decode().strip())
-            ev.set()
             print("x> ", line)
         else:
             # ev.set()
@@ -35,18 +40,21 @@ async def error_from_subprocess(process):
 
 async def write_to_subprocess(process):
     """Asynchronously get user input and write to subprocess stdin."""
+    process.stdin.write("set +m".encode() + b'\n')
+    process.stdin.write(b'echo end < /dev/null\n')
     try:
         while True:
             # Get input using an asynchronous input function
-            # await ev.wait()
-            # ev.clear()
+            await ev.wait()
+            ev.clear()
             cmd = await aioinput()
             if cmd.strip().lower() == "exit":
                 process.stdin.write_eof()
                 break
             process.stdin.write(cmd.encode() + b'\n')
-            process.stdin.write(b'echo end\n')
+            process.stdin.write(b'echo end < /dev/null\n')
             await process.stdin.drain()  # Ensure the command is sent
+            # process.stdin.write(b'\n')
     except asyncio.CancelledError:
         process.stdin.write_eof()
 
@@ -58,11 +66,13 @@ async def aioinput(prompt="> "):
 async def main():
     # Create subprocess with pipes for interaction
     process = await asyncio.create_subprocess_shell(
-        'bash -i',
+        'bash --rcfile ./custom_bashrc -i',
+        # 'bash',
         # 'python3',
         stdin=asyncio.subprocess.PIPE,
         stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE
+        stderr=asyncio.subprocess.PIPE,
+        # text=True
     )
 
     # Create tasks for reading and writing
