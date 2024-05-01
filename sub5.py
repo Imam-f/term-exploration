@@ -2,6 +2,9 @@ import os
 import pty
 import select
 
+import termios
+import tty
+
 def main():
     # Create a pseudo-terminal pair
     master, slave = pty.openpty()
@@ -9,6 +12,12 @@ def main():
 
     # Fork the current process
     pid = os.fork()
+
+    # Set terminal to raw mode
+    fd = slave
+    oldterm = termios.tcgetattr(fd)
+    tty.setraw(fd)
+    # termios.tcsetattr(fd, termios.TCSAFLUSH, oldterm)
 
     if pid == 0:
         # Child process
@@ -23,6 +32,7 @@ def main():
         os.close(slave)
         os.close(slave2)
         os.close(master)
+        os.close(master2)
 
         # Execute Bash in interactive mode
         os.execlp('bash', 'bash', '-i')
@@ -42,7 +52,8 @@ def main():
                     data = os.read(master, 1024)
                     if not data:  # EOF
                         break
-                    print("[tty", data.decode(), end='tty]\n\n')
+                    # print("[tty", data.decode(), end='tty]\n\n')
+                    print(data.decode(), end='')
                     # os.write(1, data)
 
                 if master2 in r:
@@ -59,7 +70,8 @@ def main():
                         break
                     else:
                         if data != b'0':
-                            print("[err ", data.decode(), end='err]\n\n')
+                            # print("[err ", data.decode(), end='err]\n\n')
+                            print(data.decode(), end='')
                             # os.write(1, data)
 
                 if 0 in r:
