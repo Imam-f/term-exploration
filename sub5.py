@@ -1,4 +1,5 @@
 import os
+import sys
 import pty
 import select
 
@@ -9,6 +10,8 @@ def main():
     # Create a pseudo-terminal pair
     master, slave = pty.openpty()
     master2, slave2 = pty.openpty()
+
+    print(master, slave, master2, slave2)
 
     # Fork the current process
     pid = os.fork()
@@ -35,7 +38,9 @@ def main():
         os.close(master2)
 
         # Execute Bash in interactive mode
-        os.execlp('bash', 'bash', '-i')
+        # os.execlp('bash', 'bash', '-i')
+        os.execlp(*("bash bash --rcfile ./custom_bashrc -i".split(" ")))
+        # os.execlp('bash', 'bash', '-c', 'screen')
     else:
         # Parent process
         os.close(slave)  # Close the slave end as it's not needed in the parent
@@ -54,6 +59,7 @@ def main():
                         break
                     # print("[tty", data.decode(), end='tty]\n\n')
                     print(data.decode(), end='')
+                    sys.stdout.flush()
                     # os.write(1, data)
 
                 if master2 in r:
@@ -72,6 +78,7 @@ def main():
                         if data != b'0':
                             # print("[err ", data.decode(), end='err]\n\n')
                             print(data.decode(), end='')
+                            sys.stdout.flush()
                             # os.write(1, data)
 
                 if 0 in r:
