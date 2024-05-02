@@ -18,7 +18,7 @@ def main():
     pid = os.fork()
 
     # Specify the desired terminal size (e.g., 80x24)
-    set_terminal_size(slave, 40, 90)
+    # set_terminal_size(slave, 40, 90)
 
     # Set terminal to raw mode
     # oldterm = termios.tcgetattr(slave)
@@ -42,7 +42,8 @@ def main():
         os.close(master)
 
         # Execute Bash in interactive mode
-        os.execlp('bash', 'bash', '-i')
+        # os.execlp('bash', 'bash', '-i')
+        os.execlp('env', 'bash', 'bash', '-c', '"vim"')
     else:
         # Parent process
         os.close(slave)  # Close the slave end as it's not needed in the parent
