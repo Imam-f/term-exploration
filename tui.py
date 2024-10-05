@@ -10,6 +10,7 @@ class TUI:
         self.width = 40
         self.height = 20
         self.old_settings = termios.tcgetattr(sys.stdin)
+        self.screen = [[' ' for _ in range(self.width)] for _ in range(self.height)]
 
     def __enter__(self):
         sys.stdout.write("\033[?1049h")
@@ -45,9 +46,9 @@ class TUI:
 
     def run(self):
         while self.running:
-            self.add_text(0, 0, "Welcome to the TUI with Alternative Buffer!")
-            self.add_text(0, 2, "Press 'q' to quit")
-            self.add_text(0, 4, "Test from other line")
+            self.add_text(2, 2, "Welcome to the TUI with Alternative Buffer!")
+            self.add_text(2, 4, "Press 'q' to quit")
+            self.add_text(2, 6, "Test from other line")
             self.draw()
             
             key = self.get_key()
