@@ -12,40 +12,25 @@ class TUI:
         self.old_settings = termios.tcgetattr(sys.stdin)
 
     def __enter__(self):
-        self.activate_alt_buffer()
-        self.enable_raw_mode()
+        sys.stdout.write("\033[?1049h")
+        sys.stdout.flush()
+        tty.setraw(sys.stdin.fileno())
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.deactivate_alt_buffer()
-        self.disable_raw_mode()
-
-    def activate_alt_buffer(self):
-        sys.stdout.write("\033[?1049h")
-        sys.stdout.flush()
-
-    def deactivate_alt_buffer(self):
         sys.stdout.write("\033[?1049l")
         sys.stdout.flush()
-
-    def enable_raw_mode(self):
-        tty.setraw(sys.stdin.fileno())
-
-    def disable_raw_mode(self):
         termios.tcsetattr(sys.stdin, termios.TCSADRAIN, self.old_settings)
 
-    def clear_screen(self):
+    def draw(self):
         sys.stdout.write("\033[2J")
         sys.stdout.write("\033[H")
         sys.stdout.flush()
 
-    def draw(self):
-        self.clear_screen()
         for row in self.screen:
             sys.stdout.write(''.join(row) + '\r\n')
         sys.stdout.flush()
-
-    def update_screen(self):
+        
         self.screen = [[' ' for _ in range(self.width)] for _ in range(self.height)]
 
     def add_text(self, x, y, text):
@@ -60,7 +45,6 @@ class TUI:
 
     def run(self):
         while self.running:
-            self.update_screen()
             self.add_text(0, 0, "Welcome to the TUI with Alternative Buffer!")
             self.add_text(0, 2, "Press 'q' to quit")
             self.add_text(0, 4, "Test from other line")
