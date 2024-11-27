@@ -57,6 +57,12 @@ def main():
             lambda signum, frame: os.kill(pid, signal.SIGWINCH)
         )
 
+        # os.write(master, b"\necho $PS1\n")
+        # os.write(master, b"\necho $PS1\nexport PS1='>>>'\n")
+        os.write(master, b"\nexport PS1='>>> '\n")
+        count = 0
+        is_found = False
+        PS1 = ">>> "
         try:
             while True:
                 # Wait for data to become available on the master end or standard input
@@ -69,9 +75,26 @@ def main():
                     if not data:  # EOF
                         break
                     # print("[tty", data.decode(), end='tty]\n\n')
-                    print(data.decode(), end='')
-                    sys.stdout.flush()
-                    # os.write(1, data)
+                    # skip n lines
+                    # if b'\n' in data and count < 5:
+                    #     count += 1
+                    #     continue
+                    data_decode = data.decode()
+                    # check if data is PS1
+                    if data_decode.find(PS1) != -1 and count < 2:
+                        count += 1
+                        continue
+                    if data_decode.find(PS1) != -1 and count == 2:
+                        is_found = True
+                        count += 1
+                    if data_decode.find(PS1) != -1 and count > 2:
+                        print("\r\n====================\r\n")
+                    if is_found:
+                        # print("{", data_decode, "}", end='')
+                        print(data_decode, end='')
+                        # print(data.decode(), end='')
+                        sys.stdout.flush()
+                        # os.write(1, data)
 
                 if 0 in r:
                     # Read from standard input and write to the PTY
