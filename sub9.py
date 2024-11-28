@@ -7,6 +7,7 @@ import signal
 import fcntl
 import struct
 import termios
+from termios import tcflush, TCIFLUSH
 import tty
 
 import time
@@ -37,7 +38,6 @@ def main():
 
         # tty.setraw(0)
 
-
         # Close the slave descriptor as it's no longer needed in the child
         os.close(slave)
         os.close(master)
@@ -52,17 +52,43 @@ def main():
         oldterm = termios.tcgetattr(0)
         tty.setraw(0)
 
+        def signal_handler(signum, frame):
+            # print("Caught signal %d" % signum)
+            # size = os.get_terminal_size()
+            # print(os.get_terminal_size())
+            rows, cols, px, py = struct.unpack(
+                'hhhh',
+                fcntl.ioctl(
+                    os.open(os.ctermid(), os.O_RDONLY),  # Open terminal
+                    termios.TIOCGWINSZ,                 # Get terminal window size
+                    struct.pack('hhhh', 0, 0, 0, 0)    # Initial structure
+                )
+            )
+            # print(rows, cols, px, py)
+            # set_terminal_size(master, size.lines, size.columns)
+            set_terminal_size(master, rows, cols)
+            # os.kill(pid, signal.SIGWINCH)
+
+        # signal.signal(
+        #     signal.SIGWINCH, 
+        #     lambda signum, frame: os.kill(pid, signal.SIGWINCH)
+        # )
+
         signal.signal(
             signal.SIGWINCH, 
-            lambda signum, frame: os.kill(pid, signal.SIGWINCH)
+            signal_handler
         )
 
         # os.write(master, b"\necho $PS1\n")
         # os.write(master, b"\necho $PS1\nexport PS1='>>>'\n")
-        os.write(master, b"\nexport PS1='>>> '\n")
+        tcflush(master, TCIFLUSH)
+        tcflush(0, TCIFLUSH)
+        os.write(master, 
+                 b"\n export PS1='\\033]9;9;detect_screenshot\\007'\"$PS1\"\n")
         count = 0
         is_found = False
-        PS1 = ">>> "
+        PS1 = "detect_screenshot"
+
         try:
             while True:
                 # Wait for data to become available on the master end or standard input
@@ -89,6 +115,7 @@ def main():
                         count += 1
                     if data_decode.find(PS1) != -1 and count > 2:
                         print("\r\n====================\r\n")
+                        # os.kill(pid, signal.SIGWINCH)
                     if is_found:
                         # print("{", data_decode, "}", end='')
                         print(data_decode, end='')
